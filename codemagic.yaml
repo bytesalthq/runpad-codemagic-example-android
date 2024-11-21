@@ -1,0 +1,29 @@
+workflows:
+  runpad-codemagic-example-android:
+    name: Runpad Codemagic Example Android
+    max_build_duration: 120
+    instance_type: linux_x2
+    environment:
+      groups:
+        - runpad-credentials # <-- RUNPAD_CLIENT_ID and RUNPAD_CLIENT_SECRET must be configured as Secure environment variables in this group on Codemagic
+        - runpad-options     # <-- RUNPAD_PROJECT_ID, RUNPAD_DEVICE must be configured as environment variables in this group on Codemagic
+    scripts:
+      - name: Assemble APK
+        script: |
+          ./gradlew assembleRelease
+      - name: Set app path environment variable
+        script: |
+          echo "APP_DIR_PATH=$PWD/app/build/outputs/apk/release/app-release-unsigned.apk" >> $CM_ENV
+      - name: Runpad - Install Runpad CLI
+        script: |
+          curl -fsSL https://downloads.bytesalt.com/runpad-cli-install.sh | bash
+      - name: Runpad - Run tests
+        script: |
+          runpad run                                            \
+          --project-id=$RUNPAD_PROJECT_ID                       \
+          --platform=android                                    \
+          --device="$RUNPAD_DEVICE"                             \
+          --build-path=$APP_DIR_PATH
+    artifacts:
+      - $APP_DIR_PATH
+      - $HOME/.runpad/logs/*
